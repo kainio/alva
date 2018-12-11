@@ -1,68 +1,31 @@
 import * as Model from '../model';
 import * as Types from '../types';
-import { ElementArea } from './element-area';
-import { getComponents } from './get-components';
-import { ViewStore } from '../store';
-import { Sender } from '../sender';
-import { PreviewStore, SyntheticComponents } from './preview-store';
-
-jest.mock('../sender');
-
+import * as uuid from 'uuid';
 test('get and render element actions', () => {
-	const app = new Model.AlvaApp(Model.AlvaApp.Defaults, { sender: {} as any });
-	const history = new Model.EditHistory();
-	const sender = new Sender({
-		endpoint: ''
-	});
-
-	const store = new ViewStore({
-		app,
-		history,
-		sender
-	});
-
 	const project = Model.Project.create({
-		name: '',
-		path: '',
+		name: 'test',
+		path: 'my/path',
 		draft: true
 	});
-	store.setProject(project);
-
-	const mode = Types.PreviewDocumentMode.Static;
-	const inputMock = Model.Element.from(
-		{
-			model: Types.ModelName.Element,
-			dragged: false,
-			focused: false,
-			highlighted: false,
-			id: 'id',
-			name: 'name',
-			patternId: 'pattern-id',
-			placeholderHighlighted: false,
-			containerId: 'container-id',
-			contentIds: [],
-			open: false,
-			forcedOpen: false,
-			propertyValues: [['property-id', 'b']],
-			role: 'node',
-			selected: false
-		},
-		{ project }
-	);
-	project.addElement(inputMock);
-
-	const components = getComponents(project);
-	// tslint:disable-next-line:no-object-literal-type-assertion
-	const synthetics = {} as SyntheticComponents<{}>;
-
-	const previewStore = new PreviewStore({
-		mode,
-		components,
-		project,
-		synthetics,
-		selectionArea: new ElementArea(),
-		highlightArea: new ElementArea()
+	const libraries = Model.Project.createBuiltinPatternLibrary();
+	const patterns = libraries.getPatterns();
+	const linkPattern = patterns.filter(p => p.getType() === Types.PatternType.SyntheticLink);
+	const mockElement = Model.Element.fromPattern(linkPattern[0], {
+		dragged: false,
+		contents: [],
+		project
 	});
+	const mockPropId = linkPattern[0].getId();
+	mockElement.setPropertyValue(mockPropId, [uuid.v4().toString()]);
+	const elementValues = mockElement.getPropertyValue(mockPropId);
+	expect(elementValues).toHaveLength(1);
+	const elementActions = Array.isArray(elementValues)
+		? elementValues.map((v: any) => project.getElementActionById(v))
+		: new Array(elementValues);
+	console.log(elementActions);
 
-	console.log(previewStore, '&&&&&&');
+	// elementActions.forEach((action: any) => {
+	// 	console.log(action);
+	// });
+	console.log(elementValues);
 });
